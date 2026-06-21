@@ -5,6 +5,8 @@ from typing import Optional, Dict, Any
 from app.config import settings
 import logging
 import re
+import os
+import urllib.parse
 
 logger = logging.getLogger(__name__)
 
@@ -25,15 +27,31 @@ class DatabaseManager:
         """Get or create a connection pool"""
         if cls._pool is None:
             try:
+                db_url = os.getenv("DATABASE_URL")
+                
+                if db_url:
+                    parsed = urllib.parse.urlparse(db_url)
+                    db_host = parsed.hostname
+                    db_user = parsed.username
+                    db_password = parsed.password
+                    db_name = parsed.path.lstrip('/')
+                    db_port = parsed.port or 3306
+                else:
+                    db_host = settings.db_host
+                    db_user = settings.db_user
+                    db_password = settings.db_password
+                    db_name = settings.db_name
+                    db_port = settings.db_port
+
                 cls._pool = pooling.MySQLConnectionPool(
                     pool_name="waffledom_pool",
                     pool_size=5,
                     pool_reset_session=True,
-                    host=settings.db_host,
-                    user=settings.db_user,
-                    password=settings.db_password,
-                    database=settings.db_name,
-                    port=settings.db_port,
+                    host=db_host,
+                    user=db_user,
+                    password=db_password,
+                    database=db_name,
+                    port=db_port,
                     connection_timeout=10,
                 )
                 logger.info("Database connection pool created")
